@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Programación No Lineal - Presentación</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <style>
+    :root {
+      --bg-board: #ffffff;
+      --bg-grid: rgba(0, 0, 0, 0.03);
+      --chalk-black: #000000;
+      --chalk-blue: #0044cc;
+      --chalk-red: #cc0000;
+      --chalk-green: #008800;
+      --chalk-purple: #6600cc;
+      --font-hand: 'Caveat', cursive;
+      --font-mono: 'Share Tech Mono', monospace;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      width: 100%; height: 100%; overflow: hidden;
+      background-color: var(--bg-board); color: var(--chalk-black);
+      font-family: var(--font-hand); user-select: none;
+      background-image:
+        radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 1) 0%, rgba(240, 244, 248, 1) 100%),
+        linear-gradient(to right, var(--bg-grid) 1px, transparent 1px),
+        linear-gradient(to bottom, var(--bg-grid) 1px, transparent 1px);
+      background-size: 100% 100%, 60px 60px, 60px 60px;
+    }
+    .board-frame {
+      position: relative; width: 100vw; height: 100vh; padding: 3vh 4vw;
+      display: flex; flex-direction: column; border: 4px solid #e2e8f0;
+    }
+    .header-problem {
+      text-align: center; font-family: var(--font-mono); font-size: clamp(1.2rem, 1.8vw, 1.8rem);
+      font-weight: bold; color: #334155; border-bottom: 2px solid #cbd5e1;
+      padding-bottom: 1vh; margin-bottom: 1vh; flex-shrink: 0;
+    }
+    #board-content {
+      flex: 1; display: flex; flex-direction: column; justify-content: center;
+      align-items: center; gap: 4vh; width: 100%; padding: 2vh 2vw; overflow: hidden;
+    }
+    .board-wipe { animation: wipeIn 0.3s ease-out; }
+    @keyframes wipeIn {
+      0% { opacity: 0; transform: scale(0.97); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+    .step-row {
+      display: flex; flex-wrap: wrap; justify-content: center; align-items: center;
+      text-align: center; gap: 0.5em; font-size: clamp(3.8rem, 6.5vw, 6.5rem);
+      line-height: 1.3; width: 100%;
+    }
+    .step-row.slide-title-row {
+      font-size: clamp(4.2rem, 7vw, 7rem); border-bottom: 4px solid var(--chalk-blue);
+      padding-bottom: 1vh; margin-bottom: 1vh; color: var(--chalk-blue);
+    }
+    .step-row.problem-hero {
+      font-size: clamp(4.5rem, 7.5vw, 7.5rem); background: #f8fafc;
+      border: 5px solid var(--chalk-blue); padding: 3vh 4vw; border-radius: 20px;
+      box-shadow: 0 10px 25px rgba(0, 68, 204, 0.15);
+    }
+    math { font-family: 'Cambria Math', 'Latin Modern Math', serif; font-size: 1.1em; font-weight: bold; vertical-align: middle; }
+    mfrac { padding: 0 0.1em; }
+    .chalk-black { color: #0f172a; text-shadow: 1px 1px 2px rgba(0,0,0,0.1); }
+    .chalk-blue { color: var(--chalk-blue); text-shadow: 1px 1px 2px rgba(0, 68, 204, 0.2); }
+    .chalk-red { color: var(--chalk-red); text-shadow: 1px 1px 2px rgba(204, 0, 0, 0.2); }
+    .chalk-green { color: var(--chalk-green); text-shadow: 1px 1px 2px rgba(0, 136, 0, 0.2); }
+    .chalk-purple { color: var(--chalk-purple); text-shadow: 1px 1px 2px rgba(102, 0, 204, 0.2); }
+    .size-large {
+      font-size: clamp(4.8rem, 7.5vw, 8rem); font-weight: 700; padding: 0.1em 0.4em;
+      border-radius: 16px; background: #eff6ff; border: 4px solid var(--chalk-blue);
+      box-shadow: 0 8px 20px rgba(0, 68, 204, 0.15);
+    }
+    .size-giant-blink {
+      font-size: clamp(5.5rem, 9vw, 9.5rem); color: var(--chalk-green); font-family: var(--font-mono);
+      font-weight: 700; padding: 0.1em 0.4em; border: 6px solid var(--chalk-green);
+      border-radius: 20px; background: #f0fdf4; animation: popPulse 1s infinite alternate ease-in-out;
+    }
+    @keyframes popPulse {
+      0% { transform: scale(1); box-shadow: 0 5px 15px rgba(0, 136, 0, 0.2); }
+      100% { transform: scale(1.05); box-shadow: 0 15px 30px rgba(0, 136, 0, 0.4); }
+    }
+    .chalk-cursor {
+      display: inline-block; width: 0.3em; height: 0.9em; vertical-align: middle;
+      background: var(--chalk-black); border-radius: 4px; margin-left: 8px;
+      animation: blinkCursor 0.4s infinite alternate;
+    }
+    @keyframes blinkCursor { from { opacity: 1; } to { opacity: 0; } }
+    #visual-stage {
+      display: none; flex: 1; width: 100%; height: 100%; position: relative;
+      flex-direction: column; align-items: center; justify-content: center;
+    }
+    .stage-title {
+      position: absolute; top: 0; left: 50%; transform: translateX(-50%); z-index: 10;
+      font-size: clamp(3rem, 4.5vw, 4.5rem); font-weight: bold; color: var(--chalk-blue);
+      background: #ffffff; padding: 0.5rem 2rem; border-radius: 12px;
+      border: 3px solid var(--chalk-blue); box-shadow: 0 10px 25px rgba(0,0,0,0.1); white-space: nowrap;
+    }
+    #canvas-2d {
+      border: 4px solid var(--chalk-blue); border-radius: 16px; background: #ffffff;
+      box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15); max-width: 98%; max-height: 85%; margin-top: 4vh;
+    }
+    #three-mount {
+      width: 100%; height: 90%; border: 4px solid var(--chalk-blue); border-radius: 16px;
+      overflow: hidden; margin-top: 4vh; box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+      background: #f8fafc; cursor: grab;
+    }
+    #three-mount:active { cursor: grabbing; }
+    .legend-3d {
+      position: absolute; top: 80px; left: 20px; z-index: 10; background: rgba(255, 255, 255, 0.95);
+      border: 3px solid #cbd5e1; border-radius: 12px; padding: 1.2rem; font-family: var(--font-mono);
+      font-size: clamp(1.4rem, 2vw, 1.8rem); font-weight: bold; display: none; flex-direction: column;
+      gap: 0.8rem; box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    }
+    .legend-item { display: flex; align-items: center; gap: 1rem; color: #1e293b; }
+    .swatch { width: 24px; height: 24px; border-radius: 6px; display: inline-block; }
+  </style>
+</head>
+<body>
+  <div class="board-frame">
+    <div class="header-problem">Problema: Minimizar Z = x₁² + x₂² &nbsp;|&nbsp; Restricción: x₁ + x₂ = 10</div>
+    <div id="board-content"></div>
+    <div id="visual-stage">
+      <div id="stage-title" class="stage-title"></div>
+      <div id="legend-3d" class="legend-3d">
+        <div class="legend-item"><span class="swatch" style="background:#3b82f6;"></span><span>Z = x₁² + x₂² (Calor)</span></div>
+        <div class="legend-item"><span class="swatch" style="background:#ef4444;"></span><span>Restricción: x₁ + x₂ = 10</span></div>
+        <div class="legend-item"><span class="swatch" style="background:#22c55e; border-radius:50%;"></span><span>Óptimo: (5, 5, Z=50)</span></div>
+      </div>
+      <canvas id="canvas-2d" width="1200" height="750"></canvas>
+      <div id="three-mount"></div>
+    </div>
+  </div>
+  <script>
+    const STATE_SEQUENCE = [
+      { slideId: 'slide-0', rowId: 's0-r1', rowClass: 'slide-title-row', type: 'math-text', styleClass: 'chalk-blue', tokens: [...'Problema de Minimización:'] },
+      { slideId: 'slide-0', rowId: 's0-r2', rowClass: 'problem-hero', type: 'math-text', styleClass: 'chalk-black', tokens: [...'Minimizar  ', '<math><mi>Z</mi><mo>=</mo><msubsup><mi>x</mi><mn>1</mn><mn>2</mn></msubsup><mo>+</mo><msubsup><mi>x</mi><mn>2</mn><mn>2</mn></msubsup></math>', ...'   |   S.A.  ', '<math><msub><mi>x</mi><mn>1</mn></msub><mo>+</mo><msub><mi>x</mi><mn>2</mn></msub><mo>=</mo><mn>10</mn></math>'] },
+      { slideId: 'slide-1', rowId: 's1-r1', rowClass: 'slide-title-row', type: 'math-text', styleClass: 'chalk-blue', tokens: [...'1. Lagrangiano:'] },
+      { slideId: 'slide-1', rowId: 's1-r2', type: 'math-text', styleClass: 'chalk-black', tokens: ['<math><mi mathvariant="script">L</mi><mo>=</mo></math>', '<math><msubsup><mi>x</mi><mn>1</mn><mn>2</mn></msubsup><mo>+</mo><msubsup><mi>x</mi><mn>2</mn><mn>2</mn></msubsup></math>', '<math><mo>−</mo><mi>λ</mi></math>', '<math><mo>(</mo><msub><mi>x</mi><mn>1</mn></msub><mo>+</mo><msub><mi>x</mi><mn>2</mn></msub><mo>−</mo><mn>10</mn><mo>)</mo></math>'] },
+      { slideId: 'slide-2', rowId: 's2-r1', rowClass: 'slide-title-row', type: 'math-text', styleClass: 'chalk-blue', tokens: [...'2. Derivadas Parciales KKT:'] },
+      { slideId: 'slide-2', rowId: 's2-r2', type: 'math-text', styleClass: 'chalk-black', tokens: ['<math><mfrac><mrow><mo>∂</mo><mi mathvariant="script">L</mi></mrow><mrow><mo>∂</mo><msub><mi>x</mi><mn>1</mn></msub></mrow></mfrac><mo>=</mo><mn>2</mn><msub><mi>x</mi><mn>1</mn></msub><mo>−</mo><mi>λ</mi><mo>=</mo><mn>0</mn></math>'] },
+      { slideId: 'slide-2', rowId: 's2-r2', type: 'math-text', styleClass: 'chalk-purple', tokens: [...'   ⟹   ', '<math><mi>λ</mi><mo>=</mo><mn>2</mn><msub><mi>x</mi><mn>1</mn></msub></math>'] },
+      { slideId: 'slide-2', rowId: 's2-r3', type: 'math-text', styleClass: 'chalk-black', tokens: ['<math><mfrac><mrow><mo>∂</mo><mi mathvariant="script">L</mi></mrow><mrow><mo>∂</mo><msub><mi>x</mi><mn>2</mn></msub></mrow></mfrac><mo>=</mo><mn>2</mn><msub><mi>x</mi><mn>2</mn></msub><mo>−</mo><mi>λ</mi><mo>=</mo><mn>0</mn></math>', ...'   ⟹   ', '<math class="chalk-purple"><mi>λ</mi><mo>=</mo><mn>2</mn><msub><mi>x</mi><mn>2</mn></msub></math>'] },
+      { slideId: 'slide-3', rowId: 's3-r1', rowClass: 'slide-title-row', type: 'math-text', styleClass: 'chalk-blue', tokens: [...'3. Igualar Multiplicadores:'] },
+      { slideId: 'slide-3', rowId: 's3-r2', type: 'math-text', styleClass: 'chalk-black', tokens: ['<math><mn>2</mn><msub><mi>x</mi><mn>1</mn></msub><mo>=</mo><mn>2</mn><msub><mi>x</mi><mn>2</mn></msub></math>'] },
+      { slideId: 'slide-3', rowId: 's3-r3', type: 'math-text', styleClass: 'chalk-purple size-large', tokens: [...'⟹   ', '<math><msub><mi>x</mi><mn>1</mn></msub><mo>=</mo><msub><mi>x</mi><mn>2</mn></msub></math>'] },
+      { slideId: 'slide-4', rowId: 's4-r1', rowClass: 'slide-title-row', type: 'math-text', styleClass: 'chalk-blue', tokens: [...'4. Sustituir en Restricción:'] },
+      { slideId: 'slide-4', rowId: 's4-r2', type: 'math-text', styleClass: 'chalk-black', tokens: ['<math><msub><mi>x</mi><mn>1</mn></msub><mo>+</mo><msub><mi>x</mi><mn>1</mn></msub><mo>=</mo><mn>10</mn></math>', ...'   ⟹   ', '<math><mn>2</mn><msub><mi>x</mi><mn>1</mn></msub><mo>=</mo><mn>10</mn></math>'] },
+      { slideId: 'slide-4', rowId: 's4-r3', type: 'math-text', styleClass: 'chalk-blue size-large', tokens: ['<math><msub><mi>x</mi><mn>1</mn></msub><mo>=</mo><mn>5</mn><mspace width="0.6em"/><mo>,</mo><mspace width="0.6em"/><msub><mi>x</mi><mn>2</mn></msub><mo>=</mo><mn>5</mn></math>'] },
+      { slideId: 'slide-5', rowId: 's5-r1', rowClass: 'slide-title-row', type: 'math-text', styleClass: 'chalk-blue', tokens: [...'5. Evaluar Calor Mínimo Z:'] },
+      { slideId: 'slide-5', rowId: 's5-r2', type: 'math-text', styleClass: 'chalk-black', tokens: ['<math><mi>Z</mi><mo>=</mo><msup><mn>5</mn><mn>2</mn></msup><mo>+</mo><msup><mn>5</mn><mn>2</mn></msup><mo>=</mo><mn>25</mn><mo>+</mo><mn>25</mn></math>'] },
+      { slideId: 'slide-5', rowId: 's5-r3', type: 'math-text', styleClass: 'size-giant-blink', tokens: ['<math><mi>Z</mi><mo>=</mo><mn>50</mn></math>'] },
+      { slideId: 'slide-6', type: 'canvas2d', title: 'Vista 2D: (x₁=5, x₂=5), pero... ¿Dónde se ve Z=50?' },
+      { slideId: 'slide-7', type: 'three3d', title: 'Vista 3D: El punto más bajo donde la copa toca el muro' }
+    ];
+
+    let currentStateIndex = 0; let currentRenderedSlideId = null; let isTyping = false;
+    let typingTimer = null; let activeSpanElement = null; let activeTokens = [];
+    const boardContent = document.getElementById('board-content');
+    const visualStage = document.getElementById('visual-stage');
+    const stageTitle = document.getElementById('stage-title');
+    const legend3D = document.getElementById('legend-3d');
+    const canvas2D = document.getElementById('canvas-2d');
+    const threeMount = document.getElementById('three-mount');
+    let threeRenderer = null, threeScene = null, threeCamera = null, threeControls = null, threeAnimId = null;
+
+    function getOrCreateRow(stepObj) {
+      let row = document.getElementById(stepObj.rowId);
+      if (!row) {
+        row = document.createElement('div'); row.id = stepObj.rowId;
+        row.className = 'step-row' + (stepObj.rowClass ? ' ' + stepObj.rowClass : '');
+        boardContent.appendChild(row);
+      }
+      return row;
+    }
+
+    function removeAllCursors() { boardContent.querySelectorAll('.chalk-cursor').forEach(c => c.remove()); }
+
+    function finishCurrentTypingImmediately() {
+      if (!isTyping) return; clearTimeout(typingTimer); isTyping = false;
+      if (activeSpanElement && activeTokens.length > 0) activeSpanElement.innerHTML = activeTokens.join('');
+      removeAllCursors();
+    }
+
+    function clearBoardForSlide(slideId) {
+      boardContent.innerHTML = ''; boardContent.classList.remove('board-wipe');
+      void boardContent.offsetWidth; boardContent.classList.add('board-wipe');
+      currentRenderedSlideId = slideId;
+    }
+
+    function typeSubStep(index) {
+      const stepObj = STATE_SEQUENCE[index];
+      if (currentRenderedSlideId !== stepObj.slideId) clearBoardForSlide(stepObj.slideId);
+      const row = getOrCreateRow(stepObj);
+      const span = document.createElement('span'); span.className = stepObj.styleClass || 'chalk-black'; row.appendChild(span);
+      removeAllCursors();
+      const cursor = document.createElement('span'); cursor.className = 'chalk-cursor'; row.appendChild(cursor);
+      isTyping = true; activeSpanElement = span; activeTokens = stepObj.tokens;
+      let tokenIndex = 0; let accumulatedHTML = '';
+      function writeNextToken() {
+        if (tokenIndex < activeTokens.length) {
+          const token = activeTokens[tokenIndex]; accumulatedHTML += token; span.innerHTML = accumulatedHTML; tokenIndex++;
+          typingTimer = setTimeout(writeNextToken, token.startsWith('<math') ? 100 : 20);
+        } else { isTyping = false; removeAllCursors(); }
+      }
+      writeNextToken();
+    }
+
+    function renderSlideInstantUpTo(targetIndex) {
+      clearTimeout(typingTimer); isTyping = false;
+      const targetSlideId = STATE_SEQUENCE[targetIndex].slideId; clearBoardForSlide(targetSlideId);
+      for (let i = 0; i <= targetIndex; i++) {
+        const stepObj = STATE_SEQUENCE[i];
+        if (stepObj.slideId !== targetSlideId || stepObj.type !== 'math-text') continue;
+        const row = getOrCreateRow(stepObj); const span = document.createElement('span');
+        span.className = stepObj.styleClass || 'chalk-black'; span.innerHTML = stepObj.tokens.join(''); row.appendChild(span);
+      }
+    }
+
+    function renderCanvas2D() {
+      const ctx = canvas2D.getContext('2d'); const w = canvas2D.width; const h = canvas2D.height;
+      ctx.clearRect(0, 0, w, h);
+      const originX = 180; const originY = h - 120; const scale = 55;
+      ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth = 2;
+      for (let u = 0; u <= 16; u++) {
+        const px = originX + u * scale; if (px <= w - 60) { ctx.beginPath(); ctx.moveTo(px, 50); ctx.lineTo(px, originY); ctx.stroke(); }
+        const py = originY - u * scale; if (py >= 50) { ctx.beginPath(); ctx.moveTo(originX, py); ctx.lineTo(w - 60, py); ctx.stroke(); }
+      }
+      [{ r: 3.16, label: 'Z=10' }, { r: 5.0, label: 'Z=25' }, { r: Math.sqrt(50), label: 'Z=50', highlight: true }, { r: 9.0, label: 'Z=81' }].forEach(item => {
+        ctx.beginPath(); ctx.arc(originX, originY, item.r * scale, -Math.PI / 2, 0, false);
+        if (item.highlight) { ctx.strokeStyle = '#3b82f6'; ctx.lineWidth = 6; ctx.setLineDash([15, 10]); }
+        else { ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 3; ctx.setLineDash([8, 8]); }
+        ctx.stroke();
+      });
+      ctx.setLineDash([]); ctx.strokeStyle = '#0f172a'; ctx.lineWidth = 6;
+      ctx.beginPath(); ctx.moveTo(originX, 40); ctx.lineTo(originX, originY); ctx.lineTo(w - 60, originY); ctx.stroke();
+      ctx.fillStyle = '#0f172a'; ctx.font = 'bold 40px "Share Tech Mono", monospace';
+      ctx.fillText('x₁', w - 45, originY + 12); ctx.fillText('x₂', originX - 22, 35); ctx.fillText('(0,0)', originX - 75, originY + 50);
+      [5, 10].forEach(val => {
+        const px = originX + val * scale, py = originY - val * scale;
+        ctx.strokeStyle = '#0f172a'; ctx.lineWidth = 5; ctx.beginPath();
+        ctx.moveTo(px, originY - 10); ctx.lineTo(px, originY + 10); ctx.moveTo(originX - 10, py); ctx.lineTo(originX + 10, py); ctx.stroke();
+        ctx.fillStyle = '#0f172a'; ctx.font = 'bold 36px "Share Tech Mono", monospace';
+        ctx.fillText(val.toString(), px - 12, originY + 45); ctx.fillText(val.toString(), originX - 60, py + 12);
+      });
+      const optX = originX + 5 * scale, optY = originY - 5 * scale;
+      ctx.strokeStyle = '#22c55e'; ctx.lineWidth = 4; ctx.setLineDash([8, 6]);
+      ctx.beginPath(); ctx.moveTo(optX, originY); ctx.lineTo(optX, optY); ctx.lineTo(originX, optY); ctx.stroke(); ctx.setLineDash([]);
+      ctx.strokeStyle = '#ef4444'; ctx.lineWidth = 8; ctx.beginPath(); ctx.moveTo(originX, originY - 10 * scale); ctx.lineTo(originX + 10 * scale, originY); ctx.stroke();
+      ctx.fillStyle = '#ef4444'; ctx.font = 'bold 42px "Caveat", cursive'; ctx.fillText('Restricción: x₁ + x₂ = 10', originX + 5.5 * scale, originY - 2.8 * scale);
+      ctx.fillStyle = '#22c55e'; ctx.beginPath(); ctx.arc(optX, optY, 16, 0, Math.PI * 2); ctx.fill();
+      const boxX = optX + 40, boxY = optY - 140;
+      ctx.fillStyle = '#f8fafc'; ctx.strokeStyle = '#3b82f6'; ctx.lineWidth = 5;
+      ctx.beginPath(); ctx.roundRect(boxX, boxY, 520, 140, 16); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#22c55e'; ctx.font = 'bold 38px "Share Tech Mono", monospace'; ctx.fillText('Punto: (x₁=5, x₂=5)', boxX + 30, boxY + 55);
+      ctx.fillStyle = '#0f172a'; ctx.font = 'bold 50px "Caveat", cursive'; ctx.fillText('¿Dónde está Z = 50?', boxX + 30, boxY + 115);
+    }
+
+    function destroyThreeJS() {
+      if (threeAnimId) cancelAnimationFrame(threeAnimId);
+      if (threeControls) threeControls.dispose();
+      if (threeRenderer) { threeRenderer.dispose(); threeMount.innerHTML = ''; }
+      threeScene = threeCamera = threeRenderer = threeControls = null;
+    }
+
+    function initThreeJS() {
+      destroyThreeJS();
+      const width = threeMount.clientWidth, height = threeMount.clientHeight, zScale = 0.12;
+      threeScene = new THREE.Scene(); threeScene.background = new THREE.Color(0xf8fafc);
+      threeCamera = new THREE.PerspectiveCamera(40, width / height, 0.1, 1000); threeCamera.position.set(22, 18, 24);
+      threeRenderer = new THREE.WebGLRenderer({ antialias: true }); threeRenderer.setSize(width, height);
+      threeRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); threeMount.appendChild(threeRenderer.domElement);
+      threeControls = new THREE.OrbitControls(threeCamera, threeRenderer.domElement);
+      threeControls.enableDamping = true; threeControls.target.set(5, 50 * zScale * 0.7, 5); threeControls.update();
+      threeScene.add(new THREE.AmbientLight(0xffffff, 0.9));
+      const dirLight = new THREE.DirectionalLight(0xffffff, 0.6); dirLight.position.set(10, 20, 10); threeScene.add(dirLight);
+      const gridHelper = new THREE.GridHelper(20, 20, 0x94a3b8, 0x94a3b8); gridHelper.position.set(0, -0.01, 0); threeScene.add(gridHelper);
+      threeScene.add(new THREE.AxesHelper(15));
+      const pGeom = new THREE.BufferGeometry(), pos = [], idx = [];
+      for (let i = 0; i <= 25; i++) {
+        const r = (i / 25) * 9.5;
+        for (let j = 0; j <= 40; j++) {
+          const theta = (j / 40) * Math.PI * 2, x1 = r * Math.cos(theta), x2 = r * Math.sin(theta);
+          pos.push(x1, (x1 * x1 + x2 * x2) * zScale, x2);
+        }
+      }
+      for (let i = 0; i < 25; i++) {
+        for (let j = 0; j < 40; j++) {
+          const a = i * 41 + j, b = (i + 1) * 41 + j, c = (i + 1) * 41 + (j + 1), d = i * 41 + (j + 1);
+          idx.push(a, b, d); idx.push(b, c, d);
+        }
+      }
+      pGeom.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); pGeom.setIndex(idx); pGeom.computeVertexNormals();
+      threeScene.add(new THREE.Mesh(pGeom, new THREE.MeshPhongMaterial({ color: 0x60a5fa, transparent: true, opacity: 0.25, side: THREE.DoubleSide, depthWrite: false })));
+      threeScene.add(new THREE.Mesh(pGeom, new THREE.MeshBasicMaterial({ color: 0x3b82f6, wireframe: true, transparent: true, opacity: 0.6 })));
+      const wGeom = new THREE.PlaneGeometry(14.14, 95 * zScale), wall = new THREE.Mesh(wGeom, new THREE.MeshPhongMaterial({ color: 0xef4444, transparent: true, opacity: 0.35, side: THREE.DoubleSide, depthWrite: false }));
+      wall.position.set(5, (95 * zScale) / 2, 5); wall.rotation.y = Math.PI / 4; threeScene.add(wall);
+      wall.add(new THREE.LineSegments(new THREE.EdgesGeometry(wGeom), new THREE.LineBasicMaterial({ color: 0xef4444, linewidth: 2 })));
+      const cutPts = []; for (let t = 1; t <= 9; t += 0.1) cutPts.push(new THREE.Vector3(t, (t * t + (10 - t) * (10 - t)) * zScale, 10 - t));
+      threeScene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(cutPts), new THREE.LineBasicMaterial({ color: 0xf59e0b, linewidth: 4 })));
+      const sphere = new THREE.Mesh(new THREE.SphereGeometry(0.5, 32, 32), new THREE.MeshPhongMaterial({ color: 0x22c55e })); sphere.position.set(5, 50 * zScale, 5); threeScene.add(sphere);
+      threeScene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(5, 0, 5), new THREE.Vector3(5, 50 * zScale, 5)]), new THREE.LineBasicMaterial({ color: 0x22c55e })));
+      function animate() {
+        threeAnimId = requestAnimationFrame(animate);
+        if (threeControls) threeControls.update();
+        if (threeRenderer) threeRenderer.render(threeScene, threeCamera);
+      }
+      animate();
+    }
+
+    function updatePresentationView(direction) {
+      const stepObj = STATE_SEQUENCE[currentStateIndex];
+      if (stepObj.type === 'math-text') {
+        destroyThreeJS(); visualStage.style.display = 'none'; boardContent.style.display = 'flex';
+        if (direction === 'forward') typeSubStep(currentStateIndex); else renderSlideInstantUpTo(currentStateIndex);
+        return;
+      }
+      if (stepObj.type === 'canvas2d') {
+        clearTimeout(typingTimer); isTyping = false; destroyThreeJS(); currentRenderedSlideId = stepObj.slideId;
+        boardContent.style.display = 'none'; visualStage.style.display = 'flex'; legend3D.style.display = 'none';
+        threeMount.style.display = 'none'; canvas2D.style.display = 'block'; stageTitle.textContent = stepObj.title;
+        renderCanvas2D(); return;
+      }
+      if (stepObj.type === 'three3d') {
+        clearTimeout(typingTimer); isTyping = false; currentRenderedSlideId = stepObj.slideId;
+        canvas2D.style.display = 'none'; boardContent.style.display = 'none'; visualStage.style.display = 'flex';
+        legend3D.style.display = 'flex'; threeMount.style.display = 'block'; stageTitle.textContent = stepObj.title;
+        initThreeJS(); return;
+      }
+    }
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); nextStep(); }
+      else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); prevStep(); }
+    });
+    function nextStep() {
+      if (isTyping) { finishCurrentTypingImmediately(); return; }
+      if (currentStateIndex < STATE_SEQUENCE.length - 1) { currentStateIndex++; updatePresentationView('forward'); }
+    }
+    function prevStep() {
+      if (isTyping) finishCurrentTypingImmediately();
+      if (currentStateIndex > 0) { currentStateIndex--; updatePresentationView('backward'); }
+    }
+    window.addEventListener('resize', () => {
+      if (threeRenderer && threeMount.style.display !== 'none') {
+        threeCamera.aspect = threeMount.clientWidth / threeMount.clientHeight;
+        threeCamera.updateProjectionMatrix(); threeRenderer.setSize(threeMount.clientWidth, threeMount.clientHeight);
+      }
+    });
+    window.addEventListener('DOMContentLoaded', () => updatePresentationView('forward'));
+  </script>
+</body>
+</html>
